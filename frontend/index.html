@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Car Search</title>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
+    ></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 p-10">
+    <div x-data="carSearchApp()" class="max-w-4xl mx-auto">
+      <div
+        class="px-6 py-4 relative overflow-x-auto shadow-md sm:rounded-lg space-y-5"
+      >
+        <h1 class="text-center text-indigo-500 font-bold text-2xl">
+          CarValue Trial Project
+        </h1>
+        <!-- Form -->
+        <form
+          @submit.prevent="fetchData"
+          class="flex flex-col md:flex-row items-center gap-3"
+        >
+          <div>
+            <label for="car_model" class="sr-only">Model</label>
+            <input
+              x-model="car_model"
+              type="text"
+              id="car_model"
+              name="car_model"
+              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full md:w-44 p-2.5"
+              placeholder="Enter car model"
+            />
+          </div>
+          <div>
+            <label for="car_make" class="sr-only">Make</label>
+            <input
+              x-model="car_make"
+              type="text"
+              id="car_make"
+              name="car_make"
+              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full md:w-44 p-2.5"
+              placeholder="Enter car make"
+            />
+          </div>
+          <div>
+            <label for="car_year" class="sr-only">Year</label>
+            <input
+              x-model="car_year"
+              type="number"
+              id="car_year"
+              name="car_year"
+              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full md:w-44 p-2.5"
+              placeholder="Enter car year"
+            />
+          </div>
+          <div>
+            <label for="car_mileage" class="sr-only">Mileage</label>
+            <input
+              x-model="car_mileage"
+              type="number"
+              id="car_mileage"
+              name="car_mileage"
+              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full md:w-44 p-2.5"
+              placeholder="Enter car mileage"
+            />
+          </div>
+          <button
+            type="submit"
+            :disabled="isLoading || !(car_model && car_make && car_year)"
+            class="flex-none bg-blue-500 text-white px-3 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-900"
+          >
+            <span x-show="!isLoading">Search</span>
+            <span x-show="isLoading">Loading...</span>
+          </button>
+        </form>
+
+        <!-- Table -->
+        <div
+          x-show="isLoading"
+          class="flex items-center justify-center text-center text-gray-500 h-28"
+        >
+          Loading...
+        </div>
+
+        <!-- Market Price -->
+        <div
+          x-show="!isLoading && results.length > 0"
+          class="text-center text-lg font-bold"
+        >
+          Market Price: $<span x-text="market_price"></span>
+        </div>
+
+        <div
+          x-show="!isLoading && !results.length"
+          class="flex items-center justify-center text-center text-gray-500 h-28"
+        >
+          No results found.
+        </div>
+        <table
+          x-show="!isLoading && results.length > 0"
+          class="w-full text-sm text-left text-gray-500"
+        >
+          <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+            <tr>
+              <th scope="col" class="px-6 py-3">Name</th>
+              <th scope="col" class="px-6 py-3">Price</th>
+              <th scope="col" class="px-6 py-3">Mileage</th>
+              <th scope="col" class="px-6 py-3">Location</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="item in results" :key="item.vin">
+              <tr class="bg-white border-b">
+                <td class="px-6 py-4" x-text="item.name"></td>
+                <td class="px-6 py-4" x-text="'$' + item.price"></td>
+                <td class="px-6 py-4" x-text="item.mileage + ' miles'"></td>
+                <td class="px-6 py-4" x-text="item.location"></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <script>
+      function carSearchApp() {
+        return {
+          car_model: "",
+          car_make: "",
+          car_year: "",
+          car_mileage: "",
+          results: [],
+          market_price: null,
+          isLoading: false,
+          fetchData() {
+            this.isLoading = true;
+            this.results = [];
+            this.market_price = null;
+
+            const query = `year=${this.car_year}&make=${this.car_make}&model=${this.car_model}&mileage=${this.car_mileage}`;
+
+            fetch(`http://127.0.0.1:5000/api/market_value?${query}`, {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            })
+              .then((response) => {
+                if (!response.ok) {
+                  throw new Error("Network response was not ok");
+                }
+                return response.json();
+              })
+              .then((data) => {
+                this.results = data.listings;
+                this.market_price = data.market_price;
+                this.isLoading = false;
+              })
+              .catch((error) => {
+                console.error(
+                  "There was a problem with the fetch operation:",
+                  error
+                );
+                this.isLoading = false;
+              });
+          },
+        };
+      }
+    </script>
+  </body>
+</html>
